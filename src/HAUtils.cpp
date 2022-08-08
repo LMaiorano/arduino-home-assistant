@@ -12,10 +12,10 @@ bool HAUtils::endsWith(const char* str, const char* suffix)
         return false;
     }
 
-    const uint16_t& lenstr = strlen(str);
-    const uint16_t& lensuffix = strlen(suffix);
+    const uint16_t lenstr = strlen(str);
+    const uint16_t lensuffix = strlen(suffix);
 
-    if (lensuffix > lenstr) {
+    if (lensuffix > lenstr || lenstr == 0 || lensuffix == 0) {
         return false;
     }
 
@@ -25,43 +25,66 @@ bool HAUtils::endsWith(const char* str, const char* suffix)
 void HAUtils::byteArrayToStr(
     char* dst,
     const byte* src,
-    const uint16_t& length
+    const uint16_t length
 )
 {
-    const uint16_t& finalLength = (length * 2);
     static const char map[] PROGMEM = {"0123456789abcdef"};
-
     for (uint8_t i = 0; i < length; i++) {
         dst[i*2] = pgm_read_byte(&map[((char)src[i] & 0XF0) >> 4]);
         dst[i*2+1] = pgm_read_byte(&map[((char)src[i] & 0x0F)]);
     }
 
-    dst[finalLength] = '\0';
+    dst[length * 2] = 0;
 }
 
 char* HAUtils::byteArrayToStr(
     const byte* src,
-    const uint16_t& length
+    const uint16_t length
 )
 {
-    char* dst = (char*)malloc((length * 2) + 1); // include null terminator
+    char* dst = new char[(length * 2) + 1]; // include null terminator
     byteArrayToStr(dst, src, length);
 
     return dst;
 }
 
-void HAUtils::tempToStr(
-    char* dst,
-    const double& temp
-)
+uint8_t HAUtils::calculateNumberSize(int32_t value)
 {
-    memset(dst, 0, sizeof(AHA_SERIALIZED_TEMP_SIZE));
-    dtostrf(temp, 0, 2, dst);
+    const bool isSigned = value < 0;
+    if (isSigned) {
+        value *= -1;
+    }
+
+    uint8_t digitsNb = 1;
+    while (value > 9) {
+        value /= 10;
+        digitsNb++;
+    }
+
+    if (isSigned) {
+        digitsNb++; // sign
+    }
+
+    return digitsNb;
 }
 
-double HAUtils::strToTemp(
-    const char* src
-)
+void HAUtils::numberToStr(char* dst, int32_t value)
 {
-    return atof(src);
+    if (value == 0) {
+        dst[0] = 0x30; // digit 0
+        return;
+    }
+
+    const uint8_t digitsNb = calculateNumberSize(value);
+    if (value < 0) {
+        value *= -1;
+        dst[0] = 0x2D; // hyphen
+    }
+
+    char* ch = &dst[digitsNb - 1];
+    while (value != 0) {
+       *ch = (value % 10) + '0';
+       value /= 10;
+       ch--;
+    }
 }

@@ -3,14 +3,20 @@
 
 #include <Client.h>
 #include <IPAddress.h>
+#include "ArduinoHADefines.h"
 
 #define HAMQTT_CALLBACK(name) void (*name)()
 #define HAMQTT_MESSAGE_CALLBACK(name) void (*name)(const char* topic, const uint8_t* payload, uint16_t length)
 #define HAMQTT_DEFAULT_PORT 1883
 
+#ifdef ARDUINOHA_TEST
+class PubSubClientMock;
+#else
 class PubSubClient;
+#endif
+
 class HADevice;
-class BaseDeviceType;
+class HABaseDeviceType;
 
 class HAMqtt
 {
@@ -20,7 +26,20 @@ public:
     inline static HAMqtt* instance()
         { return _instance; }
 
-    HAMqtt(Client& netClient, HADevice& device);
+#ifdef ARDUINOHA_TEST
+    explicit HAMqtt(
+        PubSubClientMock* pubSub,
+        HADevice& device,
+        const uint8_t maxDevicesTypesNb = 6
+    );
+#else
+    explicit HAMqtt(
+        Client& netClient,
+        HADevice& device,
+        const uint8_t maxDevicesTypesNb = 6
+    );
+#endif
+    ~HAMqtt();
 
     /**
      * Sets prefix for Home Assistant discovery.
@@ -94,13 +113,13 @@ public:
      * @param password Password for authentication.
      */
     bool begin(
-        const IPAddress& serverIp,
-        const uint16_t& serverPort = HAMQTT_DEFAULT_PORT,
+        const IPAddress serverIp,
+        const uint16_t serverPort = HAMQTT_DEFAULT_PORT,
         const char* username = nullptr,
         const char* password = nullptr
     );
     bool begin(
-        const IPAddress& serverIp,
+        const IPAddress serverIp,
         const char* username,
         const char* password
     );
@@ -115,7 +134,7 @@ public:
      */
     bool begin(
         const char* hostname,
-        const uint16_t& serverPort = HAMQTT_DEFAULT_PORT,
+        const uint16_t serverPort = HAMQTT_DEFAULT_PORT,
         const char* username = nullptr,
         const char* password = nullptr
     );
@@ -127,10 +146,8 @@ public:
 
     /**
      * Closes connection with the MQTT broker.
-     *
-     * @param sendLastWill Set to true if you want to publish device unavailability before closing the connection.
      */
-    bool disconnect(bool sendLastWill = true);
+    bool disconnect();
 
     /**
      * ArduinoHA's ticker.
@@ -149,22 +166,11 @@ public:
      *
      * @param deviceType Instance of the device's type (eg. HATriggers).
      */
-    void addDeviceType(BaseDeviceType* deviceType);
-
-    /**
-     * Publishes MQTT message with given topic and payload.
-     * Message won't be published if connection with MQTT broker is not established.
-     * In this case method returns false.
-     *
-     * @param topic Topic to publish.
-     * @param payload Payload to publish (it may be empty const char).
-     * @param retained Determines whether message should be retained.
-     */
-    bool publish(const char* topic, const char* payload, bool retained = false);
+    void addDeviceType(HABaseDeviceType* deviceType);
 
     bool beginPublish(const char* topic, uint16_t payloadLength, bool retained = false);
-    bool writePayload(const char* data, uint16_t length);
-    bool writePayload_P(const char* src);
+    void writePayload(const char* data, uint16_t length);
+    void writePayload_P(const char* src);
     bool endPublish();
 
     /**
@@ -205,7 +211,15 @@ public:
      * @param payload Content of the message.
      * @param length Length of the message.
      */
-    void processMessage(char* topic, uint8_t* payload, uint16_t length);
+    void processMessage(const char* topic, const uint8_t* payload, uint16_t length);
+
+#ifdef ARDUINOHA_TEST
+    inline uint8_t getDevicesTypesNb() const
+        { return _devicesTypesNb; }
+
+    inline HABaseDeviceType** getDevicesTypes() const
+        { return _devicesTypes; }
+#endif
 
 private:
     static HAMqtt* _instance;
@@ -221,7 +235,11 @@ private:
      */
     void onConnectedLogic();
 
-    Client& _netClient;
+#ifdef ARDUINOHA_TEST
+    PubSubClientMock* _mqtt;
+#else
+    PubSubClient* _mqtt;
+#endif
     HADevice& _device;
     HAMQTT_MESSAGE_CALLBACK(_messageCallback);
     HAMQTT_CALLBACK(_connectedCallback);
@@ -229,12 +247,12 @@ private:
     bool _initialized;
     const char* _discoveryPrefix;
     const char* _dataPrefix;
-    PubSubClient* _mqtt;
     const char* _username;
     const char* _password;
     uint32_t _lastConnectionAttemptAt;
     uint8_t _devicesTypesNb;
-    BaseDeviceType** _devicesTypes;
+    uint8_t _maxDevicesTypesNb;
+    HABaseDeviceType** _devicesTypes;
     const char* _lastWillTopic;
     const char* _lastWillMessage;
     bool _lastWillRetain;

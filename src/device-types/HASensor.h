@@ -1,89 +1,80 @@
 #ifndef AHA_HASENSOR_H
 #define AHA_HASENSOR_H
 
-#include "BaseDeviceType.h"
+#include "HABaseDeviceType.h"
 
-#ifdef ARDUINOHA_SENSOR
+#ifndef EX_ARDUINOHA_SENSOR
 
-class HASensor : public BaseDeviceType
+class HASensor : public HABaseDeviceType
 {
 public:
     /**
-     * Initializes binary sensor.
+     * Initializes sensor.
      *
-     * @param uniqueId Unique ID of the sensor. Recommendes characters: [a-z0-9\-_]
+     * @param uniqueId Unique ID of the sensor. Recommended characters: [a-z0-9\-_]
      */
-    HASensor(
-        const char* uniqueId
-    );
-    HASensor(
-        const char* uniqueId,
-        HAMqtt& mqtt
-    ); // legacy constructor
+    HASensor(const char* uniqueId);
 
     /**
-     * Publishes configuration of the sensor to the MQTT.
+     * Sets class of the device.
+     * You can find list of available values here: https://www.home-assistant.io/integrations/sensor/#device-class
+     * 
+     * @param class Class name
      */
-    virtual void onMqttConnected() override;
+    inline void setDeviceClass(const char* deviceClass)
+        { _deviceClass = deviceClass; }
 
     /**
-     * Publishes new value of the sensor.
-     * Please note that connection to MQTT broker must be acquired.
-     * Otherwise method will return false.
+     * Sends update events even if the value hasn’t changed. Useful if you want to have meaningful value graphs in history.
      *
-     * @param state Value to publish.
-     * @returns Returns true if MQTT message has been published successfully.
+     * @param forceUpdate
      */
-    bool setValue(const char* value);
-    bool setValue(uint32_t value);
-    bool setValue(int32_t value);
-    bool setValue(double value, uint8_t precision = 2);
-    bool setValue(float value, uint8_t precision = 2);
-
-    inline bool setValue(uint8_t value)
-        { return setValue(static_cast<uint32_t>(value)); }
-
-    inline bool setValue(uint16_t value)
-        { return setValue(static_cast<uint32_t>(value)); }
-
-    inline bool setValue(int8_t value)
-        { return setValue(static_cast<int32_t>(value)); }
-
-    inline bool setValue(int16_t value)
-        { return setValue(static_cast<int32_t>(value)); }
+    inline void setForceUpdate(bool forceUpdate)
+        { _forceUpdate = forceUpdate; }
 
     /**
-     * The type/class of the sensor to set the icon in the frontend.
+     * Sets icon of the sensor.
+     * Any icon from MaterialDesignIcons.com. Prefix name with mdi:, ie mdi:home.
      *
-     * @param className https://www.home-assistant.io/integrations/sensor/#device-class
+     * @param class Icon name
      */
-    inline void setDeviceClass(const char* className)
-        { _class = className; }
+    inline void setIcon(const char* icon)
+        { _icon = icon; }
 
     /**
      * Defines the units of measurement of the sensor, if any.
      *
      * @param units For example: °C, %
      */
-    inline void setUnitOfMeasurement(const char* units)
-        { _units = units; }
+    inline void setUnitOfMeasurement(const char* unitOfMeasurement)
+        { _unitOfMeasurement = unitOfMeasurement; }
 
     /**
-     * Sets icon of the sensor, e.g. `mdi:home`.
+     * Defines a template to extract the value. ny.
      *
-     * @param icon Material Design Icon name with mdi: prefix.
+     * @param template
      */
-    inline void setIcon(const char* icon)
-        { _icon = icon; }
+    inline void setValueTemplate(const char* valueTemplate)
+        { _valueTemplate = valueTemplate; }   
+
+    /**
+     * Publishes value of the sensor.
+     * 
+     * @param value
+     * @returns Returns true if MQTT message has been published successfully.
+     */
+    bool setValue(const char* value);
+
+protected:
+    virtual void buildSerializer() override;
+    virtual void onMqttConnected() override;
 
 private:
-    bool publishValue(const char* value);
-    uint16_t calculateSerializedLength(const char* serializedDevice) const override;
-    bool writeSerializedData(const char* serializedDevice) const override;
-
-    const char* _class;
-    const char* _units;
+    const char* _deviceClass;
+    bool _forceUpdate;
     const char* _icon;
+    const char* _unitOfMeasurement;
+    const char* _valueTemplate;
 };
 
 #endif

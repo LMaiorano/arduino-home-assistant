@@ -1,16 +1,16 @@
-#ifndef AHA_COVER_H
-#define AHA_COVER_H
+#ifndef AHA_HACOVER_H
+#define AHA_HACOVER_H
 
-#include "BaseDeviceType.h"
+#include "HABaseDeviceType.h"
 
-#ifdef ARDUINOHA_COVER
+#ifndef EX_ARDUINOHA_COVER
 
-#define HACOVER_CALLBACK(name) void (*name)(CoverCommand cmd)
+#define HACOVER_CALLBACK(name) void (*name)(CoverCommand cmd, HACover* sender)
 
-class HACover : public BaseDeviceType
+class HACover : public HABaseDeviceType
 {
 public:
-    static const char* PositionTopic;
+    static const int16_t DefaultPosition = -32768;
 
     enum CoverState {
         StateUnknown = 0,
@@ -28,14 +28,6 @@ public:
     };
 
     HACover(const char* uniqueId);
-    HACover(const char* uniqueId, HAMqtt& mqtt); // legacy constructor
-
-    virtual void onMqttConnected() override;
-    virtual void onMqttMessage(
-        const char* topic,
-        const uint8_t* payload,
-        const uint16_t& length
-    ) override;
 
     /**
      * Changes state of the cover and publishes MQTT message.
@@ -46,17 +38,24 @@ public:
      * @param force Forces to update state without comparing it to previous known state.
      * @returns Returns true if MQTT message has been published successfully.
      */
-    bool setState(CoverState state, bool force = false);
+    bool setState(const CoverState state, const bool force = false);
 
     /**
-     * Sets current state of the cover without pushing the state to Home Assistant.
+     * Sets current state of the cover without publishing it to Home Assistant.
      * This method may be useful if you want to change state before connection
      * with MQTT broker is acquired.
      *
      * @param state New state of the cover.
      */
-    inline void setCurrentState(CoverState state)
+    inline void setCurrentState(const CoverState state)
         { _currentState = state; }
+
+    /**
+     * Returns last known state of the cover.
+     * By default state is set to CoverState::StateUnknown
+     */
+    inline CoverState getCurrentState() const
+        { return _currentState; }
 
     /**
      * Changes position of the cover and publishes MQTT message.
@@ -64,9 +63,10 @@ public:
      * the MQTT message won't be published.
      *
      * @param position New position of the cover.
+     * @param force Forces to update state without comparing it to previous known state.
      * @returns Returns true if MQTT message has been published successfully.
      */
-    bool setPosition(int16_t position);
+    bool setPosition(const int16_t position, const bool force = false);
 
     /**
      * Sets current position of the cover without pushing the value to Home Assistant.
@@ -75,8 +75,33 @@ public:
      *
      * @param position New position of the cover.
      */
-    inline void setCurrentPosition(int16_t position)
+    inline void setCurrentPosition(const int16_t position)
         { _currentPosition = position; }
+
+    /**
+     * Returns last known position of the cover.
+     * By default position is set to HACover::DefaultPosition
+     */
+    inline int16_t getCurrentPosition() const
+        { return _currentPosition; }
+
+    /**
+     * Sets class of the cover.
+     * You can find list of available values here: https://www.home-assistant.io/integrations/cover/
+     * 
+     * @param class Class name
+     */
+    inline void setDeviceClass(const char* deviceClass)
+        { _class = deviceClass; }
+
+    /**
+     * Sets icon of the cover.
+     * Any icon from MaterialDesignIcons.com. Prefix name with mdi:, ie mdi:home.
+     *
+     * @param class Icon name
+     */
+    inline void setIcon(const char* icon)
+        { _icon = icon; }
 
     /**
      * Sets `retain` flag for commands published by Home Assistant.
@@ -84,7 +109,7 @@ public:
      *
      * @param retain
      */
-    inline void setRetain(bool retain)
+    inline void setRetain(const bool retain)
         { _retain = retain; }
 
     /**
@@ -97,15 +122,24 @@ public:
         { _commandCallback = callback; }
 
 protected:
-    bool publishState(CoverState state);
-    bool publishPosition(int16_t position);
-    uint16_t calculateSerializedLength(const char* serializedDevice) const override;
-    bool writeSerializedData(const char* serializedDevice) const override;
+    virtual void buildSerializer() override;
+    virtual void onMqttConnected() override;
+    virtual void onMqttMessage(
+        const char* topic,
+        const uint8_t* payload,
+        const uint16_t length
+    ) override;
+
+private:
+    bool publishState(const CoverState state);
+    bool publishPosition(const int16_t position);
     void handleCommand(const char* cmd);
 
     HACOVER_CALLBACK(_commandCallback);
     CoverState _currentState;
     int16_t _currentPosition;
+    const char* _class;
+    const char* _icon;
     bool _retain;
 };
 

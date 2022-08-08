@@ -1,28 +1,44 @@
-# Arduino Home Assistant integration
+# Arduino Home Assistant integration 🔥
 
 ArduinoHA allows to integrate an Arduino/ESP based device with Home Assistant using MQTT.
-The library is designed to use as little resources (RAM/flash) as possible.
-Initially it was optimized to work on Arduino Uno with Ethernet Shield,
+The library is designed to use as few resources (RAM/flash) as possible.
+Initially, it was optimized to work on Arduino Uno with Ethernet Shield,
 but I successfully use it on ESP8266/ESP8255 boards in my projects.
 
 ## Features
 
+* Two-way communication (state reporting and command execution)
 * MQTT discovery (device is added to the Home Assistant panel automatically)
 * MQTT Last Will and Testament
 * Support for custom MQTT messages (publishing and subscribing)
 * Auto reconnect with MQTT broker
 * Reporting availability (online/offline states) of a device
+* Doxygen documentation
+* Covered by unit tests (~100% coverage)
 
 ## Supported HA types
 
-* Binary sensors
-* Covers
-* Fans
-* Device triggers
-* Switches
-* Sensors
-* Tag scanner
-* HVACs *(side note: HVACs requires more flash size than other HA types. It's not suitable for Arduino Nano/Uno)*
+| Home Assistant type | Supported | Documentation |
+| ------------------- | :-------: | :------: |
+| Binary sensor       |     ✅     |     -    |
+| Buttons             |     ✅     |     -    |
+| Camera              |     ✅     |     -    |
+| Cover               |     ✅     |     -    |
+| Device tracker      |     ✅     |     -    |
+| Device trigger      |     ✅     |     -    |
+| Fan                 |     ✅     |     -    |
+| Humidifier          |     ✅     |     -    |
+| HVAC\*              |     ✅     |     -    |
+| Light               |     ✅     |     -    |
+| Lock                |     ✅     |     -    |
+| Number              |     ✅     |     -    |
+| Scene               |     ✅     |     -    |
+| Select              |     ✅     |     -    |
+| Sensor              |     ✅     |     -    |
+| Switch              |     ✅     |     -    |
+| Tag scanner         |     ✅     |     -    |
+
+\* - Requires more resources (flash / RAM) than other devices types.
 
 ## Examples
 
@@ -54,6 +70,7 @@ but I successfully use it on ESP8266/ESP8255 boards in my projects.
 * Controllino Maxi (standard/pure/automation/power)
 * Controllino Mega (standard/pure)
 * Sonoff Dual R2
+* Sonoff Dual R3
 * Sonoff Basic
 * Sonoff Mini
 * Tuya Wi-Fi switch module
@@ -62,19 +79,6 @@ but I successfully use it on ESP8266/ESP8255 boards in my projects.
 ## Tested Arduino Shields
 
 * Arduino Ethernet Shield (WizNet W5100)
-
-## Roadmap
-
-* FAQ + Home Assistant setup instructions
-* Documentation of the library
-* Unit tests
-* Reduce flash memory usage
-* Add support for HA lights
-
-## Unsupported features
-
-The library doesn't support all features of the MQTT integration.
-If you need support for a new feature please open a new issue in the repository.
 
 # License
 
